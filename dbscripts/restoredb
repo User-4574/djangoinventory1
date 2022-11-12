@@ -1,0 +1,3 @@
+#!/bin/bash
+psql -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -f ${POSTGRES_DB}.sql
+echo "Restored file ${POSTGRES_DB}.sql to ${POSTGRES_DB}"

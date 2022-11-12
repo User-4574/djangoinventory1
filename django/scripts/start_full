@@ -1,0 +1,41 @@
+#!/bin/bash
+myservices=(
+        rsyslog
+        cron
+        postfix
+        unattended-upgrades
+        nginx
+)
+/usr/bin/pg_ctlcluster 12 main start
+cd /inventory
+./manage.py runserver 0.0.0.0:8000 &
+
+function die(){
+        for i in "${myservices[@]}";do
+                logger "stopping $i"
+                /etc/init.d/$i stop
+        done
+        /usr/bin/pg_ctlcluster 12 main stop
+        killall manage.py
+        exit 0
+}
+trap die SIGTERM
+for i in "${myservices[@]}";do
+        logger "starting $i"
+        /etc/init.d/$i start
+done
+
+#while true; do :; done
+
+
+
+#bash job control
+#set -m
+#/usr/bin/pg_ctlcluster 12 main start
+#/etc/init.d/rsyslog start
+#cd /inventory
+#./manage.py runserver 0.0.0.0:8000
+for (( ; ; ));do
+        sleep 50
+done
+

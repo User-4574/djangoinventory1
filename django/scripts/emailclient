@@ -1,0 +1,11 @@
+#!/usr/local/bin/python
+import requests
+
+myToken = 'ad7308982bbe706f3306277aa8ffcafb4a20ec44'
+head = {'Authorization': 'token {}'.format(myToken)}
+
+r = requests.post('http://inventoryprod:8000/api/emailticketinfo/?format=json',headers=head, stream=True, json = {"address": 'blah'})
+print(r.text)
+r.status_code
+r.json()
+

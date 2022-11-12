@@ -1,0 +1,6 @@
+djangorestframework
+django_tables2
+django_filters
+django-private-storage
+psycopg2
+tablib

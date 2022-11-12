@@ -1,0 +1,14 @@
+#!/bin/bash
+dockername=${PWD##*/}
+docker stop $dockername
+docker rm $dockername
+docker build -t jah/$dockername . \
+&& docker run -d \
+        --restart unless-stopped \
+        --network docker_bridge1 \
+        --hostname $dockername \
+        --mount type=bind,source="$(pwd)"/inventory_files,target=/inventory/ \
+        --mount type=bind,source="$(pwd)"/inventory_backups,target=/inventory_backups/ \
+        --name $dockername \
+jah/$dockername \
+&& docker exec -it $dockername bash

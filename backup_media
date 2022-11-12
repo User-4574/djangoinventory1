@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Backing up all media directories to media_backup.tar.gz"
+tar cvzf media_backup.tar.gz inventory_files/private_storage inventory_files/cpu_images inventory_files/purchases dbscripts/*.sql .env

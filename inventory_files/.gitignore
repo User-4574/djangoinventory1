@@ -1,0 +1,21 @@
+#So we retain any directories immediately underneath / that might be empty like cpu images
+#Don't post sql backups to git
+*.sql
+#Don't post any private stuff to git but keep tree.
+private_storage/*/*.*
+inventory/static/
+#Don't post purchases to git.
+purchases/
+#Don't post any images to git
+*.bmp
+*.jpeg
+*.png
+*.jpg
+*.JPG
+#Don't post cpu images
+cpu_images/
+#Or tarballs
+*.tar.gz
+#This is a stub file for preserving directories that would be empty on commits (like images) so the directory tree is maintained.
+settings.py
+!*.gitkeep

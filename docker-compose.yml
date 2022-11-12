@@ -1,0 +1,117 @@
+version: '3.3'
+#Variables loaded from .env
+networks:
+  default:
+    external:
+      name: ${network_name}
+services:
+  postgres:
+    image: postgres:14
+    container_name: ${proj_name}-postgresql
+    restart: unless-stopped
+    volumes:
+      - "$PWD/database:/var/lib/postgresql/data"
+      - "$PWD/dbscripts:/dbscripts"
+      - "$PWD/dbscripts/localhost.sql:/docker-entrypoint-initdb.d/djangodb.sql"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+  django: &django
+    build:
+      context: django/.
+      args:
+        APP_USER: ${APP_USER}
+        APP_USER_ID: ${APP_USER_ID}
+    container_name: ${proj_name}-djangoinventory
+    command: /scripts/start.sh server
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${proj_name}-postgresql
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      SECRET_KEY: ${SECRET_KEY}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      DEBUG: ${DEBUG}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
+      RICHTEMPLATES_DEFAULT_SKIN: ${RICHTEMPLATES_DEFAULT_SKIN}
+      DATA_UPLOAD_MAX_NUMBER_FIELDS: ${DATA_UPLOAD_MAX_NUMBER_FIELDS}
+      LOGIN_URL: ${LOGIN_URL}
+      LOGIN_REDIRECT_URL: ${LOGIN_REDIRECT_URL}
+      LOGOUT_REDIRECT_URL: ${LOGOUT_REDIRECT_URL}
+      SOCIAL_AUTH_URL_NAMESPACE: ${SOCIAL_AUTH_URL_NAMESPACE}
+      SOCIAL_AUTH_REDIRECT_IS_HTTPS: ${SOCIAL_AUTH_REDIRECT_IS_HTTPS}
+      SOCIAL_AUTH_GOOGLE_OAUTH2_KEY: ${SOCIAL_AUTH_GOOGLE_OAUTH2_KEY}
+      SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET: ${SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET}
+      TIME_ZONE: ${TIME_ZONE}
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      SOCIAL_AUTH_ENABLE: ${SOCIAL_AUTH_ENABLE}
+      SITE_URL_FOR_SOCIAL_AUTH: ${SITE_URL_FOR_SOCIAL_AUTH}
+    ports:
+        - 8000:8000
+    depends_on:
+      - postgres
+    volumes:
+      - "$PWD/inventory_files:/inventory"
+  redis:
+    image: redis:alpine
+    container_name: ${proj_name}-redis
+    command: redis-server --appendonly yes
+#    volumes:
+#      - inventory_broker:/var/lib/redis/data
+  celery:
+      <<: *django
+      container_name: ${proj_name}-celery
+      depends_on:
+          - django
+          - postgres
+          - redis
+      environment:
+        CELERY_FLOWER_USER: ${CELERY_FLOWER_USER}
+        CELERY_FLOWER_PASSWORD: ${CELERY_FLOWER_PASSWORD}
+        DJANGOHOST: ${proj_name}-djangoinventory
+        CELERY_BROKER_URL: redis://${proj_name}-redis:6379/0
+      ports:
+          - 8001:8000
+      command: /scripts/start.sh worker
+  beat:
+      <<: *django
+      container_name: ${proj_name}-beat
+      depends_on:
+          - django
+          - postgres
+          - redis
+      ports:
+          - 8002:8000
+      environment:
+        DJANGOHOST: ${proj_name}-djangoinventory
+        CELERY_BROKER_URL: redis://${proj_name}-redis:6379/0
+      command: /scripts/start.sh beat
+  nginx:
+      <<: *django
+      container_name: ${proj_name}-nginx
+      depends_on:
+          - django
+          - postgres
+          - redis
+      ports:
+          - 80:80
+          - 443:443
+      environment:
+        DJANGOHOST: ${proj_name}-djangoinventory
+        SITE_HOSTNAME: ${SITE_HOSTNAME}
+      command: /scripts/start.sh nginx
+      volumes:
+        - "$PWD/nginx/site.conf.tmpl:/root/site.conf.tmpl"
+        - "$PWD/inventory_files:/inventory" 
+        - "$PWD/nginx/${SITE_HOSTNAME}.crt:/etc/nginx/${SITE_HOSTNAME}.crt"
+        - "$PWD/nginx/${SITE_HOSTNAME}.key:/etc/nginx/${SITE_HOSTNAME}.key"
+#volumes:
+#  inventory_database:
+#  inventory_broker:

@@ -1,0 +1,6 @@
+database/*
+*.sql
+*.tar.gz
+.env
+settings.py
+
